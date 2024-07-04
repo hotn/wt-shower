@@ -70,7 +70,7 @@
       <label for="inputName" class="sr-only">Name</label>
       <select name="name" class="form-control form-control-lg mp-5" id="inputName">
         {% for user in users %}
-        <option value={{ user.name}}>{{ user.name }}</option>
+        <option value="{{ user.name }}">{{ user.name }}</option>
         {% endfor %}
       </select>
       <br />
