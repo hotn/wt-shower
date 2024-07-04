@@ -7,7 +7,8 @@ import logging
 logging.basicConfig()
 #logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
-engine = create_engine('sqlite:///app.db', convert_unicode=True)
+#engine = create_engine('sqlite:///app.db', convert_unicode=True)
+engine = create_engine('sqlite:///app.db')
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
