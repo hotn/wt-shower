@@ -143,7 +143,7 @@ def login():
     sink_ttl = running_sink_ttl()
     if (sink_ttl > 0):
         print(f"Sink RUNNING..")
-        logger.info(f"Sink RUUNING..")
+        logger.info(f"Sink RUNNING..")
         #return render_template('sink_in_use.html', ttl=sink_ttl)
 
     if request.method == 'POST':
@@ -157,7 +157,7 @@ def login():
             if u.chef:
                 return render_template('kitchen.html', name=u.name, pi_name=u.pi_name)
             else:
-                return redirect(url_for('selection'))
+                return redirect(url_for('shower_selection'))
         else:
             flash('Wrong credentials!', 'alert alert-danger')
             return redirect(url_for('index'))
@@ -169,7 +169,7 @@ def login_nfc():
     sink_ttl = running_sink_ttl()
     if (sink_ttl > 0):
         print(f"Sink RUNNING..")
-        logger.info(f"Sink RUUNING..")
+        logger.info(f"Sink RUNNING..")
         #return render_template('sink_in_use.html', ttl=sink_ttl )
 
     if request.method == 'POST':
@@ -184,7 +184,7 @@ def login_nfc():
             if u.chef:
                 return render_template('kitchen.html', name=u.name, pi_name=u.pi_name)
             else:
-                return redirect(url_for('selection'))
+                return redirect(url_for('shower_selection'))
         else:
             flash('Wrong credentials!', 'alert alert-danger')
             return redirect(url_for('index'))
@@ -199,8 +199,8 @@ def kitchen():
         #return render_template(url_for('kitchen'))
         return render_template('kitchen.html')
     else:
-        #return render_template(url_for('selection'))
-        return render_template('selection.html')
+        #return render_template(url_for('shower_selection'))
+        return render_template('shower_selection.html')
 
 @app.route('/sink', methods = ['POST'])
 def sink():
@@ -215,11 +215,11 @@ def sink():
         say("Yay, The kitchen sink will run for 10 minutes")
     return render_template('sink.html')
 
-@app.route('/selection', methods = ['GET'])
-def selection():
+@app.route('/shower_selection', methods = ['GET'])
+def shower_selection():
     u = User.query.get(session['id'])
     say("User authentication complete")
-    return render_template('selection.html', credits=u.credits, name=u.name, pi_name=u.pi_name)
+    return render_template('shower_selection.html', credits=u.credits, name=u.name, pi_name=u.pi_name)
 
 @app.route('/instructions', methods = ['POST', 'GET'])
 def instructions():
