@@ -177,20 +177,30 @@ def login_nfc():
         print(f"{nfc}")
         u = User.query.filter(User.nfc == nfc).first()
         if u:
-            session['id'] = u.id
-            flash('You were successfully logged in')
-            text = f"Welcome, {u.name}"
-            #say(text)
-            if u.chef:
-                return render_template('kitchen.html', name=u.name, pi_name=u.pi_name)
-            else:
-                return redirect(url_for('shower_selection'))
+            return handle_successful_login(u)
         else:
             flash('Wrong credentials!', 'alert alert-danger')
             return redirect(url_for('index'))
     else:
         return redirect(url_for('index'))
 
+def handle_successful_login(u:User):
+    session['id'] = u.id
+    flash('You were successfully logged in')
+
+    if u.admin or u.chef:
+        print("logging in, is admin or chef")
+        return render_template('function_selection.html', name=u.name, chef=u.chef, admin=u.admin)
+        # return redirect(url_for('function_selection'))
+    else:
+        print("logging in, is standard user")
+        return redirect(url_for('shower_selection'))
+
+@app.route('/function_selection', methods = ['GET'])
+def function_selection():
+    u = User.query.get(session['id'])
+    say("User authentication complete")
+    return render_template('function_selection.html', name=u.name)
 
 @app.route('/kitchen', methods = ['GET'])
 def kitchen():

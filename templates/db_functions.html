@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+  <script>
+    init_global_logout(30);
+  </script>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+          {% for message in messages %}
+            <div>{{ message }}</div>
+          {% endfor %}
+    {% endif %}
+  {% endwith %}
+  <div class="container">
+    <div class="row justify-content-md-center">
+    <div class="alert alert-success" role="alert">
+      <h4 class="alert-heading">Welcome, {{name}}!</h4>
+      <p>You are authorized to perform database management functions. Select which function you'd like to perform:</p>
+    </div>
+    </div>
+  </div>
+  <div class="text-center">
+    <div class="py-3">
+      <form action="/db_import_users" method="post" enctype="multipart/form-data">
+        <input type="file" name="file"/>
+        <button type="submit" class="btn btn-primary btn-lg" name="import">IMPORT USER DATA</button>
+      </form>
+    </div>
+    <div class="py-3"></div>
+      <form action="/db_session_reset" method="post">
+        <button type="submit" class="btn btn-primary btn-lg" name="reset">RESET DATABASE SESSION</button>
+      </form>
+    </div>
+  </div>
+  <br />
+  <div class="container">
+    <div class="row justify-content-md-center">
+      <div class="px-2">
+        <form action="/function_selection" method="get">
+          <button class="btn btn-info btn-lg">Back to system function selection</button>
+        </form>
+      </div>
+      <div class="px-2">
+        <form id="logout" action="/logout" method="POST">
+          <button class="btn btn-info btn-lg">Back to home</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
