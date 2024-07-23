@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+  <script>
+    // init_global_logout(30);
+  </script>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-md-center">
+      <div class="alert alert-success" role="alert">
+      <h4 class="alert-heading">User Management</h4>
+      </div>
+    </div>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Name</th>
+          <th scope="col">Remaining Credits</th>
+          <th scope="col">Chef</th>
+          <th scope="col">Admin</th>
+          <th scope="col">NFC Tag</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr class="text-center">
+            <th scope="row" class="align-middle">{{ user.id }}</th>
+            <td class="align-middle">{{ user.name }}</td>
+            <td class="align-middle">{{ user.credits }}</td>
+            <td class="align-middle">
+              {% if user.chef %}
+                &check;
+              {% endif %}
+            </td>
+            <td class="align-middle">
+              {% if user.admin %}
+                &check;
+              {% endif %}
+            </td>
+            <td class="align-middle">{{ user.nfc }}</td>
+            <td>
+              <button class="edit-user btn btn-info btn-lg" data-user-id="{{ user.id }}">Edit User</button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <br />
+  <div class="container">
+    <div class="row justify-content-md-center">
+      <form id="logout" action="/logout" method="POST">
+        <button class="btn btn-info btn-lg">Back to home</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

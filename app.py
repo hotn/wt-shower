@@ -1,7 +1,7 @@
 # coding: utf-8
 from flask import Flask, Response, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_api import status 
-from database import db_session
+from database import db_session, reset_db
 from models import User, Shower, Phrase, Event
 from celery import Celery
 from celery.schedules import crontab
@@ -11,6 +11,7 @@ from celery.signals import after_setup_task_logger
 from celery.app.log import TaskFormatter
 from datetime import datetime, timedelta
 from time import sleep
+from fileinput import filename
 
 import os
 import random
@@ -152,12 +153,7 @@ def login():
         print(f"{name}, {password}")
         u = User.query.filter(User.name == name, User.password == password).first()
         if u:
-            session['id'] = u.id
-            flash('You were successfully logged in')
-            if u.chef:
-                return render_template('kitchen.html', name=u.name, pi_name=u.pi_name)
-            else:
-                return redirect(url_for('shower_selection'))
+            return handle_successful_login(u)
         else:
             flash('Wrong credentials!', 'alert alert-danger')
             return redirect(url_for('index'))
@@ -247,6 +243,34 @@ def instructions():
         seconds = int(credits)*SHOWER_TIME
         escort_user(user.pi_name, shower.id, seconds)
         return render_template('instructions.html', seconds=seconds, credits=user.credits, shower=shower.id)
+
+@app.route('/user_management')
+def user_management():
+    users = User.query.all()
+    return render_template('user_management.html', users=users)
+
+@app.route('/db_functions')
+def db_functions():
+    u = User.query.get(session['id'])
+    say("User authentication complete")
+    return render_template('db_functions.html', name=u.name, action="none")
+
+@app.route('/db_functions', methods = ['POST'])
+def db_functions_post():
+    u = User.query.get(session['id'])
+    action = request.form['action']
+
+    if action == "import":
+        content_bytes = request.files['file'].stream.read()
+        content = content_bytes.decode("utf-8")
+        # TODO: parse file records to see if they are valid, already exist, etc (might be better as a separate user management page eventually)
+        return render_template('db_functions.html', name=u.name, action=action, file_content=content)
+
+    if action == "reset":
+        reset_db()
+        return render_template('db_functions.html', name=u.name, message='Reset db session (not yet implemented)', action=action)
+
+    return render_template('db_functions.html', name=u.name, action=action)
 
 # TODO: OOP
 def available_shower():
