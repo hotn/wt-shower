@@ -1,8 +1,12 @@
 {% extends "base.html" %}
-{% block content %}
+
+{% block scripts %%}
   <script>
     init_global_logout(30);
   </script>
+{% endblock %}
+
+{% block content %}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
           {% for message in messages %}

@@ -1,9 +1,12 @@
 {% extends "base.html" %}
-{% block content %}
+
+{% block scripts %}
   <script>
-    function doSubmit() { document.getElementById('logout').submit(); }
-    setTimeout(doSubmit, 30000);
+    init_global_logout(30);
   </script>
+{% endblock %}
+
+{% block content %}
   <div class="container">
     <div class="row justify-content-md-center">
     <div class="alert alert-success" role="alert">

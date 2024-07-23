@@ -7,10 +7,14 @@
     <link href="/static/shower.css" rel="stylesheet">
     <link href="/static/numpad.css" rel="stylesheet" >
     <script src="/static/numpad.js"></script>
+    <script src="/static/global.js"></script>
+    {% block scripts %}
+    {% endblock %}
   </head>
   <body class="text-center">
     {% block content %}
     {% endblock %}
+    <form id="global-logout" action="/logout" method="POST">
+    </form>
   </body>
 </html>
-
