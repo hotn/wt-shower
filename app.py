@@ -249,6 +249,21 @@ def user_management():
     users = User.query.all()
     return render_template('user_management.html', users=users)
 
+@app.route('/user_management', methods = ['POST'])
+def user_management_post():
+    user = User.query.get(request.form['id']);
+
+    # only credits, chef, admin, and nfc may be updated
+    user.credits = request.form['credits']
+    user.chef = 1 if 'chef' in request.form else 0
+    user.admin = 1 if 'admin' in request.form else 0
+    user.nfc = request.form['nfc']
+    print(user)
+    db_session.commit()
+
+    users = User.query.all()
+    return render_template('user_management.html', users=users)
+
 @app.route('/db_functions')
 def db_functions():
     u = User.query.get(session['id'])
