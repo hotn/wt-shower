@@ -20,6 +20,13 @@
     listen_for_nfc((nfc) => {
       redirectPost('/login_nfc', { nfc: nfc });
     });
+
+    window.addEventListener("load", function(){
+      numpad.attach({
+        id : "inputPassword",
+        inputType: "password"
+      });
+    });
   </script>
 {% endblock %}
 
@@ -31,14 +38,6 @@
                {% endfor %}
          {% endif %}
       {% endwith %}
-    <script>
-      window.addEventListener("load", function(){
-        numpad.attach({
-          id : "inputPassword"
-        });
-      });
-    </script>
-
 
     <div class="jumbotron">
       <h1>

@@ -9,6 +9,8 @@
   visibility: hidden;
   opacity: 0;
   transition: 0.3s;
+  /* 1100 layers on top of Bootstrap modals, which are 1050 */
+  z-index: 1100;
 }
 #numpad-back.show {
   visibility: visible;
