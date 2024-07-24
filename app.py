@@ -1,6 +1,7 @@
 # coding: utf-8
 from flask import Flask, Response, render_template, request, redirect, url_for, flash, session, jsonify
-from flask_api import status 
+from flask_api import status
+from sqlalchemy import exc
 from database import db_session, reset_db
 from models import User, Shower, Phrase, Event
 from celery import Celery
@@ -258,11 +259,16 @@ def user_management_post():
     user.chef = 1 if 'chef' in request.form else 0
     user.admin = 1 if 'admin' in request.form else 0
     user.nfc = request.form['nfc']
-    print(user)
-    db_session.commit()
+
+    try:
+        db_session.commit()
+    except exc.IntegrityError as error:
+        db_session.rollback()
+        print("Error saving user changes", error)
+        save_error = 'NFC tag already in use by another user' if 'UNIQUE constraint failed: users.nfc' in str(error) else 'Unknown error'
 
     users = User.query.all()
-    return render_template('user_management.html', users=users)
+    return render_template('user_management.html', users=users, save_error=save_error)
 
 @app.route('/db_functions')
 def db_functions():

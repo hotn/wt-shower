@@ -40,6 +40,14 @@
 
 {% block content %}
   <div class="container">
+    {% if save_error %}
+    <div class="row justify-content-md-center">
+      <div class="alert alert-danger" role="alert">
+      <h4 class="alert-heading">Error!</h4>
+      <p>{{ save_error }}</p>
+      </div>
+    </div>
+    {% endif %}
     <div class="row justify-content-md-center">
       <div class="alert alert-success" role="alert">
       <h4 class="alert-heading">User Management</h4>
@@ -152,7 +160,6 @@
                   <input id="user-nfc" class="form-control" name="nfc" type="text"/>
                 </div>
                 <div class="col pl-4">
-                  <!-- <input id="clear-nfc" class="form-control" type="checkbox"/> -->
                   <button type="button" id="clear-nfc" class="form-control btn-secondary">
                     <span aria-hidden="true">×</span>
                   </button>
