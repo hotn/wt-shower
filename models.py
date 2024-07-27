@@ -1,7 +1,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, DATETIME
 from database import Base
 from datetime import datetime
+from dataclasses import dataclass
 
+@dataclass
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
@@ -10,14 +12,16 @@ class User(Base):
     password = Column(String(120), unique=True)
     credits = Column(Integer, unique=False)
     chef = Column(Boolean, default=False)
+    admin = Column(Boolean, default=False)
     nfc = Column(String(50), unique=True, index=True)
 
-    def __init__(self, name=None, pi_name=None, password=None, credits=18, nfc=None):
+    def __init__(self, name=None, pi_name=None, password=None, credits=18, chef=False, admin=False, nfc=None):
         self.name = name
         self.pi_name = pi_name
         self.password = password
         self.credits = credits
         self.chef = chef
+        self.admin = admin
         self.nfc = nfc
 
     def __repr__(self):

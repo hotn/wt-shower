@@ -284,7 +284,25 @@ def db_functions_post():
     if action == "import":
         content_bytes = request.files['file'].stream.read()
         content = content_bytes.decode("utf-8")
-        # TODO: parse file records to see if they are valid, already exist, etc (might be better as a separate user management page eventually)
+        records = content.splitlines()
+        for record in records:
+            fields = record.split(",")
+
+            user_id = int(fields.pop(0))
+            user = user = User(
+                fields.pop(0),
+                fields.pop(0),
+                fields.pop(0),
+                int(fields.pop(0)),
+                {'0': False, '1': True}[fields.pop(0)],
+                {'0': False, '1': True}[fields.pop(0)],
+                fields.pop(0)
+            )
+            user.id = user_id
+
+            db_session.merge(user)
+            db_session.commit()
+
         return render_template('db_functions.html', name=u.name, action=action, file_content=content)
 
     if action == "reset":

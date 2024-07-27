@@ -1,8 +1,12 @@
 {% extends "base.html" %}
 
-{% block scripts %%}
+{% block scripts %}
   <script>
-    init_global_logout(30);
+    // init_global_logout(30);
+
+    function confirm_import_users() {
+      return confirm("This will revert all user data to its original state, including credits, roles, passwords, and NFC tag assignments. Are you sure you want to continue?");
+    }
   </script>
 {% endblock %}
 
@@ -30,11 +34,17 @@
     </div>
   </div>
   <div class="text-center">
-    <div class="py-3">
-      <form action="/db_functions" method="post" enctype="multipart/form-data">
+    <div class="container py-3">
+      <form id="import-users" action="/db_functions" method="post" enctype="multipart/form-data" onsubmit="return confirm_import_users()">
         <input type="hidden" name="action" value="import"/>
-        <input type="file" name="file"/>
-        <button type="submit" class="btn btn-primary btn-lg">IMPORT USER DATA</button>
+        <div class="row">
+          <div class="col-4 offset-2">
+            <input class="form-control-file form-control-lg" type="file" name="file"/>
+          </div>
+          <div class="col-5">
+            <button type="submit" class="btn btn-primary btn-lg">IMPORT USER DATA</button>
+          </div>
+        </div>
       </form>
     </div>
     <div class="py-3"></div>
