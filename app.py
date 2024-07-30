@@ -154,6 +154,7 @@ def login():
         print(f"{name}, {password}")
         u = User.query.filter(User.name == name, User.password == password).first()
         if u:
+            say("User authentication complete")
             return handle_successful_login(u)
         else:
             flash('Wrong credentials!', 'alert alert-danger')
@@ -174,6 +175,7 @@ def login_nfc():
         print(f"{nfc}")
         u = User.query.filter(User.nfc == nfc).first()
         if u:
+            say("User authentication complete")
             return handle_successful_login(u)
         else:
             flash('Wrong credentials!', 'alert alert-danger')
@@ -187,8 +189,7 @@ def handle_successful_login(u:User):
 
     if u.admin or u.chef:
         print("logging in, is admin or chef")
-        return render_template('function_selection.html', name=u.name, chef=u.chef, admin=u.admin)
-        # return redirect(url_for('function_selection'))
+        return redirect(url_for('function_selection'))
     else:
         print("logging in, is standard user")
         return redirect(url_for('shower_selection'))
@@ -196,18 +197,15 @@ def handle_successful_login(u:User):
 @app.route('/function_selection', methods = ['GET'])
 def function_selection():
     u = User.query.get(session['id'])
-    say("User authentication complete")
-    return render_template('function_selection.html', name=u.name)
+    return render_template('function_selection.html', name=u.name, chef=u.chef, admin=u.admin)
 
 @app.route('/kitchen', methods = ['GET'])
 def kitchen():
     u = User.query.get(session['id'])
     if u.chef:
-        #return render_template(url_for('kitchen'))
-        return render_template('kitchen.html')
+        return render_template('kitchen.html', name=u.name, chef=u.chef, admin=u.admin)
     else:
-        #return render_template(url_for('shower_selection'))
-        return render_template('shower_selection.html')
+        return render_template('shower_selection.html', name=u.name, chef=u.chef, admin=u.admin)
 
 @app.route('/sink', methods = ['POST'])
 def sink():
@@ -220,13 +218,12 @@ def sink():
         log_event(u.id, 0, 1)
         enable_sink()
         say("Yay, The kitchen sink will run for 10 minutes")
-    return render_template('sink.html')
+    return render_template('sink.html', chef=u.chef, admin=u.admin)
 
 @app.route('/shower_selection', methods = ['GET'])
 def shower_selection():
     u = User.query.get(session['id'])
-    say("User authentication complete")
-    return render_template('shower_selection.html', credits=u.credits, name=u.name, pi_name=u.pi_name)
+    return render_template('shower_selection.html', credits=u.credits, name=u.name, pi_name=u.pi_name, chef=u.chef, admin=u.admin)
 
 @app.route('/instructions', methods = ['POST', 'GET'])
 def instructions():
@@ -243,12 +240,13 @@ def instructions():
         assign_shower(shower, user, credits)
         seconds = int(credits)*SHOWER_TIME
         escort_user(user.pi_name, shower.id, seconds)
-        return render_template('instructions.html', seconds=seconds, credits=user.credits, shower=shower.id)
+        return render_template('instructions.html', seconds=seconds, credits=user.credits, shower=shower.id, chef=u.chef, admin=u.admin)
 
 @app.route('/user_management')
 def user_management():
+    u = User.query.get(session['id'])
     users = User.query.all()
-    return render_template('user_management.html', users=users)
+    return render_template('user_management.html', users=users, chef=u.chef, admin=u.admin)
 
 @app.route('/user_management', methods = ['POST'])
 def user_management_post():
@@ -262,22 +260,22 @@ def user_management_post():
 
     try:
         db_session.commit()
+        save_error = None
     except exc.IntegrityError as error:
         db_session.rollback()
         print("Error saving user changes", error)
         save_error = 'NFC tag already in use by another user' if 'UNIQUE constraint failed: users.nfc' in str(error) else 'Unknown error'
 
     users = User.query.all()
-    return render_template('user_management.html', users=users, save_error=save_error)
+    return render_template('user_management.html', users=users, save_error=save_error, chef=u.chef, admin=u.admin)
 
-@app.route('/db_functions')
-def db_functions():
+@app.route('/db_management')
+def db_management():
     u = User.query.get(session['id'])
-    say("User authentication complete")
-    return render_template('db_functions.html', name=u.name, action="none")
+    return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)
 
-@app.route('/db_functions', methods = ['POST'])
-def db_functions_post():
+@app.route('/db_management', methods = ['POST'])
+def db_management_post():
     u = User.query.get(session['id'])
     action = request.form['action']
 
@@ -303,13 +301,13 @@ def db_functions_post():
             db_session.merge(user)
             db_session.commit()
 
-        return render_template('db_functions.html', name=u.name, action=action, file_content=content)
+        return render_template('db_management.html', name=u.name, file_content=content, chef=u.chef, admin=u.admin)
 
     if action == "reset":
         reset_db()
-        return render_template('db_functions.html', name=u.name, message='Reset db session (not yet implemented)', action=action)
+        return render_template('db_management.html', name=u.name, message='Reset db session (not yet implemented)', chef=u.chef, admin=u.admin)
 
-    return render_template('db_functions.html', name=u.name, action=action)
+    return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)
 
 # TODO: OOP
 def available_shower():

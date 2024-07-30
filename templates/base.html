@@ -12,10 +12,71 @@
     <script src="/static/global.js"></script>
     {% block scripts %}
     {% endblock %}
+    <script>
+      $(document).ready(() => {
+        const path = window.location.pathname;
+        if (path != "/" && path != "/login") {
+          $("#footer-buttons").removeClass("d-none");
+        }
+
+        if (path != "/function_selection") {
+          $("#function-selection-button").removeClass("d-none");
+        }
+      });
+    </script>
   </head>
   <body class="text-center">
     {% block content %}
     {% endblock %}
+    <div id="footer-buttons" class="container py-5 d-none">
+      <div class="row justify-content-md-center">
+        {% if admin or chef %}
+        <div id="function-selection-button" class="px-2 d-none">
+          <form action="/function_selection" method="get">
+            <button class="btn btn-info btn-lg">Back to system function selection</button>
+          </form>
+        </div>
+        {% endif %}
+        {% if admin %}
+        <div id="function-selection-button" class="px-2 d-none">
+          <form action="/function_selection" method="get">
+            <button class="btn btn-info btn-lg">Admin check only</button>
+          </form>
+        </div>
+        {% endif %}
+        {% if chef %}
+        <div id="function-selection-button" class="px-2 d-none">
+          <form action="/function_selection" method="get">
+            <button class="btn btn-info btn-lg">Chef check only</button>
+          </form>
+        </div>
+        {% endif %}
+        {% if admin and chef %}
+        <div id="function-selection-button" class="px-2 d-none">
+          <form action="/function_selection" method="get">
+            <button class="btn btn-info btn-lg">Both check (and)</button>
+          </form>
+        </div>
+        {% endif %}
+        {% if admin or chef %}
+        <div id="function-selection-button" class="px-2 d-none">
+          <form action="/function_selection" method="get">
+            <button class="btn btn-info btn-lg">Both check (or)</button>
+          </form>
+        </div>
+        {% endif %}
+        <div id="function-selection-button" class="px-2 d-none">
+          <form action="/function_selection" method="get">
+            <button class="btn btn-info btn-lg">Proof of update</button>
+          </form>
+        </div>
+        <div class="px-2">
+          <form id="logout" action="/logout" method="POST">
+            <button class="btn btn-info btn-lg">Back to home</button>
+          </form>
+        </div>
+      </div>
+    </div>
     <form id="global-logout" action="/logout" method="POST">
     </form>
   </body>
