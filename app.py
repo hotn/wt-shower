@@ -227,20 +227,20 @@ def shower_selection():
 
 @app.route('/instructions', methods = ['POST', 'GET'])
 def instructions():
+    u = User.query.get(session['id'])
     credits = request.form['credit']
-    user = User.query.get(session['id'])
     shower = available_shower()
 
     if not shower:
-        return render_template('unavailable.html')
-    if user.credits <= 0:
-        return render_template('no_credits.html')
+        return render_template('unavailable.html', chef=u.chef, admin=u.admin)
+    if u.credits <= 0:
+        return render_template('no_credits.html', chef=u.chef, admin=u.admin)
     else:
-        log_event(user.id, credits)
-        assign_shower(shower, user, credits)
+        log_event(u.id, credits)
+        assign_shower(shower, u, credits)
         seconds = int(credits)*SHOWER_TIME
-        escort_user(user.pi_name, shower.id, seconds)
-        return render_template('instructions.html', seconds=seconds, credits=user.credits, shower=shower.id, chef=u.chef, admin=u.admin)
+        escort_user(u.pi_name, shower.id, seconds)
+        return render_template('instructions.html', seconds=seconds, credits=u.credits, shower=shower.id, chef=u.chef, admin=u.admin)
 
 @app.route('/user_management')
 def user_management():
@@ -250,6 +250,11 @@ def user_management():
 
 @app.route('/user_management', methods = ['POST'])
 def user_management_post():
+    u = User.query.get(session['id'])
+
+    success_message = None
+    error_message = None
+
     user = User.query.get(request.form['id']);
 
     # only credits, chef, admin, and nfc may be updated
@@ -260,14 +265,14 @@ def user_management_post():
 
     try:
         db_session.commit()
-        save_error = None
-    except exc.IntegrityError as error:
+        success_message = 'User update saved'
+    except Exception as e:
         db_session.rollback()
-        print("Error saving user changes", error)
-        save_error = 'NFC tag already in use by another user' if 'UNIQUE constraint failed: users.nfc' in str(error) else 'Unknown error'
+        print("Error saving user changes", e)
+        error_message = 'NFC tag already in use by another user' if 'UNIQUE constraint failed: users.nfc' in str(e) else 'Unknown error'
 
     users = User.query.all()
-    return render_template('user_management.html', users=users, save_error=save_error, chef=u.chef, admin=u.admin)
+    return render_template('user_management.html', users=users, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
 
 @app.route('/db_management')
 def db_management():
@@ -277,31 +282,43 @@ def db_management():
 @app.route('/db_management', methods = ['POST'])
 def db_management_post():
     u = User.query.get(session['id'])
+
+    success_message = None
+    error_message = None
+
     action = request.form['action']
 
     if action == "import":
         content_bytes = request.files['file'].stream.read()
         content = content_bytes.decode("utf-8")
         records = content.splitlines()
-        for record in records:
-            fields = record.split(",")
 
-            user_id = int(fields.pop(0))
-            user = user = User(
-                fields.pop(0),
-                fields.pop(0),
-                fields.pop(0),
-                int(fields.pop(0)),
-                {'0': False, '1': True}[fields.pop(0)],
-                {'0': False, '1': True}[fields.pop(0)],
-                fields.pop(0)
-            )
-            user.id = user_id
+        try:
+            for record in records:
+                fields = record.split(",")
 
-            db_session.merge(user)
+                user_id = int(fields.pop(0))
+                user = user = User(
+                    fields.pop(0),
+                    fields.pop(0),
+                    fields.pop(0),
+                    int(fields.pop(0)),
+                    {'0': False, '1': True}[fields.pop(0)],
+                    {'0': False, '1': True}[fields.pop(0)],
+                    fields.pop(0)
+                )
+                user.id = user_id
+
+                db_session.merge(user)
+
             db_session.commit()
+            success_message = 'Records imported'
+        except Exception as e:
+            db_session.rollback()
+            print("Error importing records", e)
+            error_message = f"Unknown error: {str(e)}"
 
-        return render_template('db_management.html', name=u.name, file_content=content, chef=u.chef, admin=u.admin)
+        return render_template('db_management.html', name=u.name, file_content=content, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
 
     if action == "reset":
         reset_db()
