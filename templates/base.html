@@ -37,39 +37,6 @@
           </form>
         </div>
         {% endif %}
-        {% if admin %}
-        <div id="function-selection-button" class="px-2 d-none">
-          <form action="/function_selection" method="get">
-            <button class="btn btn-info btn-lg">Admin check only</button>
-          </form>
-        </div>
-        {% endif %}
-        {% if chef %}
-        <div id="function-selection-button" class="px-2 d-none">
-          <form action="/function_selection" method="get">
-            <button class="btn btn-info btn-lg">Chef check only</button>
-          </form>
-        </div>
-        {% endif %}
-        {% if admin and chef %}
-        <div id="function-selection-button" class="px-2 d-none">
-          <form action="/function_selection" method="get">
-            <button class="btn btn-info btn-lg">Both check (and)</button>
-          </form>
-        </div>
-        {% endif %}
-        {% if admin or chef %}
-        <div id="function-selection-button" class="px-2 d-none">
-          <form action="/function_selection" method="get">
-            <button class="btn btn-info btn-lg">Both check (or)</button>
-          </form>
-        </div>
-        {% endif %}
-        <div id="function-selection-button" class="px-2 d-none">
-          <form action="/function_selection" method="get">
-            <button class="btn btn-info btn-lg">Proof of update</button>
-          </form>
-        </div>
         <div class="px-2">
           <form id="logout" action="/logout" method="POST">
             <button class="btn btn-info btn-lg">Back to home</button>
