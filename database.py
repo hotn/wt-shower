@@ -18,3 +18,9 @@ Base.query = db_session.query_property()
 def init_db():
     import models
     Base.metadata.create_all(bind=engine)
+
+def reset_db():
+    # TODO: determine which db call is most appropriate (problem still may be redis, not db...won't know until it can be recreated)
+    # db_session.expire_all()
+    # db_session.close_all()
+    pass

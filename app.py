@@ -15,6 +15,7 @@ from time import sleep
 from fileinput import filename
 
 import os
+import subprocess
 import random
 import platform
 import redis
@@ -321,7 +322,13 @@ def db_management_post():
         return render_template('db_management.html', name=u.name, file_content=content, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
 
     if action == "reset":
+        # TODO: what constitutes a 'reset'? closing the current db session? doing something with redis? clearing active user fields in shower table?
+        showers = Shower.query.all()
+        for shower in showers:
+            shower_shutdown(shower.id)
+        redis.flushdb()
         reset_db()
+        subprocess.run('systemctl restart shower-worker shower-beater shower-gpio shower-nfc shower-1 shower-2')
         return render_template('db_management.html', name=u.name, message='Reset db session (not yet implemented)', chef=u.chef, admin=u.admin)
 
     return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)
@@ -329,7 +336,12 @@ def db_management_post():
 # TODO: OOP
 def available_shower():
 #    raise Exception("Debugging purpose") # Raising an exception to activate Flask's debugger
-    showers = Shower.query.filter_by(assigned_to=None).all()
+    showers_none = Shower.query.filter_by(assigned_to=None).all()
+    print(f"NONE count: {len(showers_none)}")
+    showers_empty = Shower.query.filter_by(assigned_to='').all()
+    print(f"EMPTY count: {len(showers_empty)}")
+    showers = showers_none + showers_empty
+    print(f"ALL count: {len(showers)}")
     count = len(showers)
     if count == 0:
         return None
@@ -403,26 +415,34 @@ def toggle():
 
 @app.route('/api/shower_toggle/<shower_id>')
 def shower_toggle(shower_id):
+    print(f"toggling shower {shower_id}")
     #shower = Shower.query.filter_by(id=shower_id, not(assigned_to=None)).first()
     shower = Shower.query.get(shower_id)
     if shower.assigned_to == None:
         r  = f"shower{shower_id} NOT ASSIGNED"
+        print(r)
         return r
     else:
         # TODO: DRY
         shower_status = int(redis.get(f"shower{shower_id}") or 0)
         toggle_status = not bool(shower_status)
-        GPIO.output(shower_pin(int(shower_id)), toggle_status) # 0 == off
+        #GPIO.output(shower_pin(int(shower_id)), toggle_status) # 0 == off
         #GPIO.output(shower_pin(int(shower_id)), not toggle_status) # 1 == off
         #RELAY.relayTOGGLE(3,int(shower_id))
         redis.set(f"shower{shower_id}", int(toggle_status))
         if int(toggle_status) == 1 and shower.started_at == None: # first shower
+            print("starting shower?")
             shower.started_at = datetime.now()
             db_session.commit()
         elif int(toggle_status) == 0: # pause
+            print("pausing shower?")
             shower.paused_at = datetime.now()
             db_session.commit()
-        return f"shower{shower_id}, status:{toggle_status}"
+        else:
+            print("don't know what to do with shower")
+        r = f"shower{shower_id}, status:{toggle_status}"
+        print(r)
+        return r
 
 
 # test

@@ -7,8 +7,20 @@
 Run the following to install system packages:
 
 ``` bash
-apt install espeak redis-server sqlite3 virtualenv espeak-ng
+apt install espeak redis-server sqlite3 virtualenv espeak-ng fonts-noto fonts-symbola tmux ccze
 ```
+
+Package purposes:
+
+- `espeak` - 
+- `redis-server` - Session state management
+- `sqlite3` - Database
+- `virtualenv` - Python virtual environments
+- `espeak-ng` - Text-to-speech
+- `fonts-noto` - Font package
+- `fonts-symbola` - Emoji font support
+- `tmux` - Multi-window console
+- `ccze` - Log colorizer
 
 ### Python
 
@@ -112,6 +124,8 @@ python hello_gpio3.py
 
 nfc reader
 
+[nfcpy docs](https://nfcpy.readthedocs.io/en/latest/topics/get-started.html#installation)
+
 ``` bash
 python nfc_reader.py
 ```
@@ -155,6 +169,8 @@ watch -n1 "sqlite3 -header app.db 'select * from showers' "
 ```
 
 ## Fonts
+
+**NOT NEEDED, INSTALLED ABOVE**
 
 ``` bash
 sudo apt-get install fonts-noto fonts-symbola

@@ -48,9 +48,8 @@ def listen_for_button_press():
 
         if shower_button == 1:
             print("PRESS+++++++++++++++++++++")
-            toggle_shower()
         else:
-            print("DE-PRESS------------------")
+            print("DE-PRESS------------------")    
 
     # if shower2_button != button2_state:
     #     if shower2_button == 1:
@@ -65,7 +64,7 @@ def listen_for_button_press():
 
 def toggle_shower():
     try:
-        r = requests.get(f"{URL}/{shower_number}")
+        r = requests.get(f"{URL}/{button}")
         print(r.text)
     except Exception as e:
         print("error: {}".format(e))
