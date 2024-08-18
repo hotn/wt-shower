@@ -25,13 +25,13 @@ def listen_for_button_press():
 
     # has the button state changed from our last "official" button state
     if shower_button != button_state:
-        print("state change: " + str(shower_button))
+        # print("state change: " + str(shower_button))
         if time() - button_last_change < time_gate:
-            print("failed time gate")
+            # print("failed time gate")
             return
         # The state change is new. Record it, but do nothing until we're sure it's an actual button push and not just some flakiness
         if shower_button != button_pending_state:
-            print("setting pending state: " + str(shower_button))
+            # print("setting pending state: " + str(shower_button))
             button_pending_state = shower_button
             button_last_change = time()
             return
@@ -47,21 +47,14 @@ def listen_for_button_press():
         button_state = shower_button
 
         if shower_button == 1:
-            print("PRESS+++++++++++++++++++++")
+            # print("PRESS+++++++++++++++++++++")
             toggle_shower()
-        else:
-            print("DE-PRESS------------------")
-
-    # if shower2_button != button2_state:
-    #     if shower2_button == 1:
-    #         print("button 2 press")
-    #     else:
-    #         print("button 2 de-press")    
-    #     button2_state = shower2_button
+        # else:
+            # print("DE-PRESS------------------")
     else:
-        print("reset!!!")
         button_pending_state = shower_button
         button_last_change = time()
+        # print("reset!!!")
 
 def toggle_shower():
     try:

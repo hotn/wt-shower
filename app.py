@@ -328,7 +328,7 @@ def db_management_post():
             shower_shutdown(shower.id)
         redis.flushdb()
         reset_db()
-        subprocess.run('systemctl restart shower-worker shower-beater shower-gpio shower-nfc shower-1 shower-2')
+        subprocess.run(['systemctl', 'restart', 'shower-worker', 'shower-beater', 'shower-gpio', 'shower-nfc', 'shower-1', 'shower-2'])
         return render_template('db_management.html', name=u.name, message='Reset db session (not yet implemented)', chef=u.chef, admin=u.admin)
 
     return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)

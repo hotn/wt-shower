@@ -3,6 +3,8 @@ flask-bootstrap
 flask-sqlalchemy
 flask-api
 redis
+# newer versions of importlib-metadata break celery
+importlib-metadata==4.13.0
 celery
 #gpiozero
 requests
