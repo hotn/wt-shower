@@ -7,6 +7,10 @@
     function confirm_import_users() {
       return confirm("This will revert all user data to its original state, including credits, roles, passwords, and NFC tag assignments. Are you sure you want to continue?");
     }
+
+    function confirm_session_reset() {
+      return confirm("This will shut down all showers, clear the Redis session, clear the database session, restart all services, and log you out. Are you sure you want to continue?");
+    }
   </script>
 {% endblock %}
 
@@ -30,13 +34,13 @@
     {% endif %}
     <div class="row justify-content-md-center">
       <div class="alert alert-primary" role="alert">
-        <h4 class="alert-heading">Database Management</h4>
+        <h4 class="alert-heading">System Management</h4>
       </div>
     </div>
   </div>
   <div class="text-center">
     <div class="container py-3">
-      <form id="import-users" action="/db_management" method="post" enctype="multipart/form-data" onsubmit="return confirm_import_users()">
+      <form id="import-users" action="/system_management" method="post" enctype="multipart/form-data" onsubmit="return confirm_import_users()">
         <input type="hidden" name="action" value="import"/>
         <div class="row">
           <div class="col-4 offset-2">
@@ -49,9 +53,9 @@
       </form>
     </div>
     <div class="py-3"></div>
-      <form action="/db_management" method="post">
+      <form action="/system_management" method="post" onsubmit="return confirm_session_reset()">
         <input type="hidden" name="action" value="reset"/>
-        <button type="submit" class="btn btn-primary btn-lg">RESET DATABASE SESSION</button>
+        <button type="submit" class="btn btn-primary btn-lg">RESET SESSION</button>
       </form>
     </div>
   </div>

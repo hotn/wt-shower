@@ -275,13 +275,13 @@ def user_management_post():
     users = User.query.all()
     return render_template('user_management.html', users=users, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
 
-@app.route('/db_management')
-def db_management():
+@app.route('/system_management')
+def system_management():
     u = User.query.get(session['id'])
-    return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)
+    return render_template('system_management.html', name=u.name, chef=u.chef, admin=u.admin)
 
-@app.route('/db_management', methods = ['POST'])
-def db_management_post():
+@app.route('/system_management', methods = ['POST'])
+def system_management_post():
     u = User.query.get(session['id'])
 
     success_message = None
@@ -319,19 +319,19 @@ def db_management_post():
             print("Error importing records", e)
             error_message = f"Unknown error: {str(e)}"
 
-        return render_template('db_management.html', name=u.name, file_content=content, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
+        return render_template('system_management.html', name=u.name, file_content=content, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
 
     if action == "reset":
         # TODO: what constitutes a 'reset'? closing the current db session? doing something with redis? clearing active user fields in shower table?
         showers = Shower.query.all()
         for shower in showers:
             shower_shutdown(shower.id)
-        redis.flushdb()
+        redis.flushall()
         reset_db()
         subprocess.run(['systemctl', 'restart', 'shower-worker', 'shower-beater', 'shower-gpio', 'shower-nfc', 'shower-1', 'shower-2'])
-        return render_template('db_management.html', name=u.name, message='Reset db session (not yet implemented)', chef=u.chef, admin=u.admin)
+        return logout()
 
-    return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)
+    return render_template('system_management.html', name=u.name, chef=u.chef, admin=u.admin)
 
 # TODO: OOP
 def available_shower():
