@@ -48,6 +48,7 @@ def listen_for_button_press():
 
         if shower_button == 1:
             # print("PRESS+++++++++++++++++++++")
+            print(f"Toggling shower {shower_number}")
             toggle_shower()
         # else:
             # print("DE-PRESS------------------")
@@ -65,6 +66,8 @@ def toggle_shower():
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(button, GPIO.IN)
+
+print(f'Setting up for shower {shower_number}')
 
 while True:
     listen_for_button_press()

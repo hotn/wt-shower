@@ -1,4 +1,11 @@
 {% extends "base.html" %}
+
+{% block scripts %}
+  <script>
+    init_global_logout(30);
+  </script>
+{% endblock %}
+
 {% block content %}
   <div class="container">
     <div class="row justify-content-md-center">
