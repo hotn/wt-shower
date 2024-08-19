@@ -29,8 +29,12 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 #GPIO.setup(20, GPIO.OUT)
 #GPIO.setup(21, GPIO.OUT)
+
+# shower 1
 GPIO.setup(19, GPIO.OUT)
+# shower 2
 GPIO.setup(26, GPIO.OUT)
+# sink
 GPIO.setup(21, GPIO.OUT)
 
 
@@ -246,7 +250,7 @@ def instructions():
 @app.route('/user_management')
 def user_management():
     u = User.query.get(session['id'])
-    users = User.query.all()
+    users = User.query.order_by(User.name).all()
     return render_template('user_management.html', users=users, chef=u.chef, admin=u.admin)
 
 @app.route('/user_management', methods = ['POST'])
@@ -272,7 +276,7 @@ def user_management_post():
         print("Error saving user changes", e)
         error_message = 'NFC tag already in use by another user' if 'UNIQUE constraint failed: users.nfc' in str(e) else 'Unknown error'
 
-    users = User.query.all()
+    users = User.query.order_by(User.name).all()
     return render_template('user_management.html', users=users, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
 
 @app.route('/system_management')
@@ -413,6 +417,11 @@ def toggle():
         result = error_handler(e)
         return result, status.HTTP_500_INTERNAL_SERVER_ERROR
 
+@app.route('/api/mike_test')
+def mike_test():
+    print('Got to mike test')
+    return 'Please show me something'
+
 @app.route('/api/shower_toggle/<shower_id>')
 def shower_toggle(shower_id):
     print(f"toggling shower {shower_id}")
@@ -426,7 +435,7 @@ def shower_toggle(shower_id):
         # TODO: DRY
         shower_status = int(redis.get(f"shower{shower_id}") or 0)
         toggle_status = not bool(shower_status)
-        #GPIO.output(shower_pin(int(shower_id)), toggle_status) # 0 == off
+        GPIO.output(shower_pin(int(shower_id)), int(toggle_status)) # 0 == off
         #GPIO.output(shower_pin(int(shower_id)), not toggle_status) # 1 == off
         #RELAY.relayTOGGLE(3,int(shower_id))
         redis.set(f"shower{shower_id}", int(toggle_status))
@@ -464,6 +473,11 @@ def shower_clear(shower_id):
     shower_shutdown(shower_id)
     return f"cleared shower{shower_id}"
 
+@app.route('/api/force_incr')
+def force_incr():
+    incr()
+    return 'ran incr()'
+
 def error_handler(error):
     exception_type = error.__class__.__name__
     exception_message = str(error)
@@ -481,24 +495,29 @@ def error_handler(error):
 
 @celery.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
+    print('running celery setup_periodic_tasks')
     sender.add_periodic_task(1.0, incr.s(), name='increment')
     sender.add_periodic_task(300.0, cleanup.s(), name='cleanup')
     #sender.add_periodic_task(1.0, periodic.s('hello'), name='add every second')
 
 @celery.task
 def add_together(a,b):
+    print('running celery add_together')
     return a + b
 
 @celery.task
 def periodic(txt):
+    print('running celery periodic')
     return txt
 
 @celery.task
 # check_shower
 # TODO: warn if stopped (logfile?)
 def incr():
+  print('running celery incr')
   try:
     showers = running_showers()
+    print(f"Incr showers: {showers}")
     for k,v in enumerate(showers):
         # if showers are running
         if int(v or 0) == 1:
@@ -534,10 +553,11 @@ def incr():
         # if showers are stopped
         elif (not v == None):
             shower_id = k+1
+            printf("Shower not none. Shower id {shower_id}")
             s = Shower.query.filter_by(id=shower_id).first()
             if (not s.paused_at == None) and (not s.assigned_to == None):
                 elapsed_pause = (datetime.now() - s.paused_at).total_seconds()
-                #print(f"Shower {shower_id}: [PAUSED] Elapsed time since last pause: {elapsed_pause}")
+                print(f"Shower {shower_id}: [PAUSED] Elapsed time since last pause: {elapsed_pause}")
                 shower_shutdown_status = int(redis.get(f"shower{shower_id}_shutdown") or 0)
                 if (elapsed_pause > PAUSE_TIME_UNTIL_RESET and shower_shutdown_status == 0):
                     redis.set(f"shower{shower_id}_shutdown", 1)
@@ -580,6 +600,7 @@ def incr():
 
 @celery.task
 def cleanup():
+  print('running celery cleanup')
   try:
     showers = abandoned_showers()
     for s in showers:
@@ -634,7 +655,9 @@ def running_sink_ttl():
     return redis.ttl('sink')
 
 def shower_pin(id):
-    return SHOWER_PIN_MAP[id]
+    pin = SHOWER_PIN_MAP[id]
+    print(f"Pin for shower id {id} is {pin}")
+    return pin
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
