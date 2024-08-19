@@ -7,7 +7,7 @@ SHOWER_BUTTON_MAP = {1:22, 2:23}
 
 shower_number = int(sys.argv[1])
 button = SHOWER_BUTTON_MAP[shower_number]
-time_gate = .4
+time_gate = .2
 button_state = 0
 button_pending_state = 0
 button_last_change = time()
