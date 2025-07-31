@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+  <script>
+    init_global_logout(30);
+  </script>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-md-center">
+    <div class="alert alert-primary" role="alert">
+      <h4 class="alert-heading">Welcome, {{name}}!</h4>
+      <p>Select which function you'd like to perform:</p>
+    </div>
+    </div>
+  </div>
+  <div class="text-center">
+    {% if chef %}
+      <div class="py-3">
+        <form action="/kitchen" method="get">
+          <button type="submit" class="btn btn-primary btn-lg">Kitchen</button>
+        </form>
+      </div>
+    {% endif %}
+    {% if admin %}
+      <div class="py-3">
+        <form action="/user_management" method="get">
+          <button type="submit" class="btn btn-primary btn-lg">User Management</button>
+        </form>
+      </div>
+      <div class="py-3">
+        <form action="/db_management" method="get">
+          <button type="submit" class="btn btn-primary btn-lg">Database Management</button>
+        </form>
+      </div>
+    {% endif %}
+    <div class="py-3">
+      <form action="/shower_selection" method="get">
+        <button type="submit" class="btn btn-primary btn-lg">Shower</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,7 +1,8 @@
 # coding: utf-8
 from flask import Flask, Response, render_template, request, redirect, url_for, flash, session, jsonify
-from flask_api import status 
-from database import db_session
+from flask_api import status
+from sqlalchemy import exc
+from database import db_session, reset_db
 from models import User, Shower, Phrase, Event
 from celery import Celery
 from celery.schedules import crontab
@@ -11,6 +12,7 @@ from celery.signals import after_setup_task_logger
 from celery.app.log import TaskFormatter
 from datetime import datetime, timedelta
 from time import sleep
+from fileinput import filename
 
 import os
 import random
@@ -143,7 +145,7 @@ def login():
     sink_ttl = running_sink_ttl()
     if (sink_ttl > 0):
         print(f"Sink RUNNING..")
-        logger.info(f"Sink RUUNING..")
+        logger.info(f"Sink RUNNING..")
         #return render_template('sink_in_use.html', ttl=sink_ttl)
 
     if request.method == 'POST':
@@ -152,12 +154,8 @@ def login():
         print(f"{name}, {password}")
         u = User.query.filter(User.name == name, User.password == password).first()
         if u:
-            session['id'] = u.id
-            flash('You were successfully logged in')
-            if u.chef:
-                return render_template('kitchen.html', name=u.name, pi_name=u.pi_name)
-            else:
-                return redirect(url_for('selection'))
+            say("User authentication complete")
+            return handle_successful_login(u)
         else:
             flash('Wrong credentials!', 'alert alert-danger')
             return redirect(url_for('index'))
@@ -169,7 +167,7 @@ def login_nfc():
     sink_ttl = running_sink_ttl()
     if (sink_ttl > 0):
         print(f"Sink RUNNING..")
-        logger.info(f"Sink RUUNING..")
+        logger.info(f"Sink RUNNING..")
         #return render_template('sink_in_use.html', ttl=sink_ttl )
 
     if request.method == 'POST':
@@ -177,30 +175,37 @@ def login_nfc():
         print(f"{nfc}")
         u = User.query.filter(User.nfc == nfc).first()
         if u:
-            session['id'] = u.id
-            flash('You were successfully logged in')
-            text = f"Welcome, {u.name}"
-            #say(text)
-            if u.chef:
-                return render_template('kitchen.html', name=u.name, pi_name=u.pi_name)
-            else:
-                return redirect(url_for('selection'))
+            say("User authentication complete")
+            return handle_successful_login(u)
         else:
             flash('Wrong credentials!', 'alert alert-danger')
             return redirect(url_for('index'))
     else:
         return redirect(url_for('index'))
 
+def handle_successful_login(u:User):
+    session['id'] = u.id
+    flash('You were successfully logged in')
+
+    if u.admin or u.chef:
+        print("logging in, is admin or chef")
+        return redirect(url_for('function_selection'))
+    else:
+        print("logging in, is standard user")
+        return redirect(url_for('shower_selection'))
+
+@app.route('/function_selection', methods = ['GET'])
+def function_selection():
+    u = User.query.get(session['id'])
+    return render_template('function_selection.html', name=u.name, chef=u.chef, admin=u.admin)
 
 @app.route('/kitchen', methods = ['GET'])
 def kitchen():
     u = User.query.get(session['id'])
     if u.chef:
-        #return render_template(url_for('kitchen'))
-        return render_template('kitchen.html')
+        return render_template('kitchen.html', name=u.name, chef=u.chef, admin=u.admin)
     else:
-        #return render_template(url_for('selection'))
-        return render_template('selection.html')
+        return render_template('shower_selection.html', name=u.name, chef=u.chef, admin=u.admin)
 
 @app.route('/sink', methods = ['POST'])
 def sink():
@@ -213,30 +218,113 @@ def sink():
         log_event(u.id, 0, 1)
         enable_sink()
         say("Yay, The kitchen sink will run for 10 minutes")
-    return render_template('sink.html')
+    return render_template('sink.html', chef=u.chef, admin=u.admin)
 
-@app.route('/selection', methods = ['GET'])
-def selection():
+@app.route('/shower_selection', methods = ['GET'])
+def shower_selection():
     u = User.query.get(session['id'])
-    say("User authentication complete")
-    return render_template('selection.html', credits=u.credits, name=u.name, pi_name=u.pi_name)
+    return render_template('shower_selection.html', credits=u.credits, name=u.name, pi_name=u.pi_name, chef=u.chef, admin=u.admin)
 
 @app.route('/instructions', methods = ['POST', 'GET'])
 def instructions():
+    u = User.query.get(session['id'])
     credits = request.form['credit']
-    user = User.query.get(session['id'])
     shower = available_shower()
 
     if not shower:
-        return render_template('unavailable.html')
-    if user.credits <= 0:
-        return render_template('no_credits.html')
+        return render_template('unavailable.html', chef=u.chef, admin=u.admin)
+    if u.credits <= 0:
+        return render_template('no_credits.html', chef=u.chef, admin=u.admin)
     else:
-        log_event(user.id, credits)
-        assign_shower(shower, user, credits)
+        log_event(u.id, credits)
+        assign_shower(shower, u, credits)
         seconds = int(credits)*SHOWER_TIME
-        escort_user(user.pi_name, shower.id, seconds)
-        return render_template('instructions.html', seconds=seconds, credits=user.credits, shower=shower.id)
+        escort_user(u.pi_name, shower.id, seconds)
+        return render_template('instructions.html', seconds=seconds, credits=u.credits, shower=shower.id, chef=u.chef, admin=u.admin)
+
+@app.route('/user_management')
+def user_management():
+    u = User.query.get(session['id'])
+    users = User.query.all()
+    return render_template('user_management.html', users=users, chef=u.chef, admin=u.admin)
+
+@app.route('/user_management', methods = ['POST'])
+def user_management_post():
+    u = User.query.get(session['id'])
+
+    success_message = None
+    error_message = None
+
+    user = User.query.get(request.form['id']);
+
+    # only credits, chef, admin, and nfc may be updated
+    user.credits = request.form['credits']
+    user.chef = 1 if 'chef' in request.form else 0
+    user.admin = 1 if 'admin' in request.form else 0
+    user.nfc = request.form['nfc']
+
+    try:
+        db_session.commit()
+        success_message = 'User update saved'
+    except Exception as e:
+        db_session.rollback()
+        print("Error saving user changes", e)
+        error_message = 'NFC tag already in use by another user' if 'UNIQUE constraint failed: users.nfc' in str(e) else 'Unknown error'
+
+    users = User.query.all()
+    return render_template('user_management.html', users=users, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
+
+@app.route('/db_management')
+def db_management():
+    u = User.query.get(session['id'])
+    return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)
+
+@app.route('/db_management', methods = ['POST'])
+def db_management_post():
+    u = User.query.get(session['id'])
+
+    success_message = None
+    error_message = None
+
+    action = request.form['action']
+
+    if action == "import":
+        content_bytes = request.files['file'].stream.read()
+        content = content_bytes.decode("utf-8")
+        records = content.splitlines()
+
+        try:
+            for record in records:
+                fields = record.split(",")
+
+                user_id = int(fields.pop(0))
+                user = user = User(
+                    fields.pop(0),
+                    fields.pop(0),
+                    fields.pop(0),
+                    int(fields.pop(0)),
+                    {'0': False, '1': True}[fields.pop(0)],
+                    {'0': False, '1': True}[fields.pop(0)],
+                    fields.pop(0)
+                )
+                user.id = user_id
+
+                db_session.merge(user)
+
+            db_session.commit()
+            success_message = 'Records imported'
+        except Exception as e:
+            db_session.rollback()
+            print("Error importing records", e)
+            error_message = f"Unknown error: {str(e)}"
+
+        return render_template('db_management.html', name=u.name, file_content=content, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
+
+    if action == "reset":
+        reset_db()
+        return render_template('db_management.html', name=u.name, message='Reset db session (not yet implemented)', chef=u.chef, admin=u.admin)
+
+    return render_template('db_management.html', name=u.name, chef=u.chef, admin=u.admin)
 
 # TODO: OOP
 def available_shower():

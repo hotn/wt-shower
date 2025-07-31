@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+  <script>
+    // init_global_logout(30);
+    $(document).ready(function() {
+      $("#clear-nfc").on("click", function() {
+        $("#user-nfc").val("");
+      });
+    });
+
+    $('#user-details-modal').on('shown.bs.modal', function () {
+      $('.edit-user').trigger('focus');
+    })
+
+    $(document).on("click", ".edit-user", function () {
+      $(".modal-body #user-id").val($(this).data('user-id'));
+      $(".modal-body #user-name").val($(this).data('user-name'));
+      $(".modal-body #user-credits").val($(this).data('user-credits'));
+      $(".modal-body #user-chef").prop('checked', $(this).data('user-chef') == 'True');
+      $(".modal-body #user-admin").prop('checked', $(this).data('user-admin') == 'True');
+      $(".modal-body #user-nfc").val($(this).data('user-nfc'));
+    });
+
+    listen_for_nfc((nfc) => {
+      console.log('nfc scan', nfc);
+
+      if ($('#user-details-modal').hasClass('show')) {
+        $(".modal-body #user-nfc").val(nfc);
+      }
+    });
+
+    window.addEventListener("load", function(){
+      numpad.attach({
+        id : "user-credits"
+      });
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {% if success_message %}
+      <div class="row justify-content-md-center">
+        <div class="alert alert-success" role="alert">
+          <h4 class="alert-heading">Success!</h4>
+          <p>{{ success_message }}</p>
+        </div>
+      </div>
+    {% endif %}
+    {% if error_message %}
+      <div class="row justify-content-md-center">
+        <div class="alert alert-danger" role="alert">
+          <h4 class="alert-heading">Error!</h4>
+          <p>{{ error_message }}</p>
+        </div>
+      </div>
+    {% endif %}
+    <div class="row justify-content-md-center">
+      <div class="alert alert-primary" role="alert">
+        <h4 class="alert-heading">User Management</h4>
+      </div>
+    </div>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Name</th>
+          <th scope="col">Remaining Credits</th>
+          <th scope="col">Chef</th>
+          <th scope="col">Admin</th>
+          <th scope="col">NFC Tag</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr class="text-center">
+            <th scope="row" class="align-middle">{{ user.id }}</th>
+            <td class="align-middle">{{ user.name }}</td>
+            <td class="align-middle">{{ user.credits }}</td>
+            <td class="align-middle">
+              {% if user.chef %}
+                &check;
+              {% endif %}
+            </td>
+            <td class="align-middle">
+              {% if user.admin %}
+                &check;
+              {% endif %}
+            </td>
+            <td class="align-middle">{{ user.nfc }}</td>
+            <td>
+              <button 
+                class="edit-user btn btn-info btn-lg" 
+                data-user-id="{{ user.id }}" 
+                data-user-name="{{ user.name }}" 
+                data-user-credits="{{ user.credits }}" 
+                data-user-chef="{{ user.chef }}" 
+                data-user-admin="{{ user.admin }}" 
+                data-user-nfc="{{ user.nfc }}" 
+                data-toggle="modal" 
+                data-target="#user-details-modal"
+              >Edit User</button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="modal fade" id="user-details-modal" aria-hidden="true">
+    <div class="modal-dialog">
+      <form action="/user_management" method="post">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Edit User</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+            <div class="modal-body">
+              <input id="user-id" name="id" type="hidden"/>
+              <div class="row py-3">
+                <div class="col">
+                  <label for="name">Name</label>
+                </div>
+                <div class="col">
+                  <input id="user-name" class="form-control" name="name" type="text" disabled/>
+                </div>
+              </div>
+              <div class="row py-3">
+                <div class="col">
+                  <label for="name">Remaining Credits</label>
+                </div>
+                <div class="col">
+                  <input id="user-credits" class="form-control" name="credits" type="number"/>
+                </div>
+              </div>
+              <div class="row py-3">
+                <div class="col">
+                  <label for="name">Chef</label>
+                </div>
+                <div class="col">
+                  <input id="user-chef" class="form-control" name="chef" type="checkbox"/>
+                </div>
+              </div>
+              <div class="row py-3">
+                <div class="col">
+                  <label for="name">Admin</label>
+                </div>
+                <div class="col">
+                  <input id="user-admin" class="form-control" name="admin" type="checkbox"/>
+                </div>
+              </div>
+              <div class="row py-3">
+                <div class="col-6">
+                  <label for="name">NFC</label>
+                </div>
+                <div class="col-4 pr-0">
+                  <input id="user-nfc" class="form-control" name="nfc" type="text"/>
+                </div>
+                <div class="col pl-4">
+                  <button type="button" id="clear-nfc" class="form-control btn-secondary">
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-lg" data-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

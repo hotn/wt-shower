@@ -15,7 +15,7 @@ var numpad = {
     // ATTACH THE NUMBER DISPLAY
     numpad.display = document.createElement("input");
     numpad.display.id = "numpad-display";
-    numpad.display.type = "password";
+    // numpad.display.type = "password";
     numpad.display.readOnly = true;
     wrap.appendChild(numpad.display);
 
@@ -81,6 +81,11 @@ var numpad = {
 
       // SHOW NUMPAD ON CLICK
       target.addEventListener("click", numpad.show);
+
+      // Input type
+      if (opt.inputType == "password") {
+        numpad.display.type = "password"
+      }
     } else {
       console.log(opt.id + " NOT FOUND!");
     }

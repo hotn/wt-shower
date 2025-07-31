@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+  <script>
+    // init_global_logout(30);
+
+    function confirm_import_users() {
+      return confirm("This will revert all user data to its original state, including credits, roles, passwords, and NFC tag assignments. Are you sure you want to continue?");
+    }
+  </script>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {% if success_message %}
+      <div class="row justify-content-md-center">
+        <div class="alert alert-success" role="alert">
+          <h4 class="alert-heading">Success!</h4>
+          <p>{{ success_message }}</p>
+        </div>
+      </div>
+    {% endif %}
+    {% if error_message %}
+      <div class="row justify-content-md-center">
+        <div class="alert alert-danger" role="alert">
+          <h4 class="alert-heading">Error!</h4>
+          <p>{{ error_message }}</p>
+        </div>
+      </div>
+    {% endif %}
+    <div class="row justify-content-md-center">
+      <div class="alert alert-primary" role="alert">
+        <h4 class="alert-heading">Database Management</h4>
+      </div>
+    </div>
+  </div>
+  <div class="text-center">
+    <div class="container py-3">
+      <form id="import-users" action="/db_management" method="post" enctype="multipart/form-data" onsubmit="return confirm_import_users()">
+        <input type="hidden" name="action" value="import"/>
+        <div class="row">
+          <div class="col-4 offset-2">
+            <input class="form-control-file form-control-lg" type="file" name="file"/>
+          </div>
+          <div class="col-5">
+            <button type="submit" class="btn btn-primary btn-lg">IMPORT USER DATA</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="py-3"></div>
+      <form action="/db_management" method="post">
+        <input type="hidden" name="action" value="reset"/>
+        <button type="submit" class="btn btn-primary btn-lg">RESET DATABASE SESSION</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

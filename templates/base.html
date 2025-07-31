@@ -3,14 +3,48 @@
   <head>
     <meta charset="utf-8">
     <title>Wrongtown Shower System</title>
-    <link href="/static/bootstrap.min.css" rel="stylesheet" >
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
     <link href="/static/shower.css" rel="stylesheet">
-    <link href="/static/numpad.css" rel="stylesheet" >
+    <link href="/static/numpad.css" rel="stylesheet">
+    <script src="/static/jquery-3.3.1.slim.min.js"></script>
+    <script src="/static/bootstrap.min.js"></script>
     <script src="/static/numpad.js"></script>
+    <script src="/static/global.js"></script>
+    {% block scripts %}
+    {% endblock %}
+    <script>
+      $(document).ready(() => {
+        const path = window.location.pathname;
+        if (path != "/" && path != "/login") {
+          $("#footer-buttons").removeClass("d-none");
+        }
+
+        if (path != "/function_selection") {
+          $("#function-selection-button").removeClass("d-none");
+        }
+      });
+    </script>
   </head>
   <body class="text-center">
     {% block content %}
     {% endblock %}
+    <div id="footer-buttons" class="container py-5 d-none">
+      <div class="row justify-content-md-center">
+        {% if admin or chef %}
+        <div id="function-selection-button" class="px-2 d-none">
+          <form action="/function_selection" method="get">
+            <button class="btn btn-info btn-lg">Back to system function selection</button>
+          </form>
+        </div>
+        {% endif %}
+        <div class="px-2">
+          <form id="logout" action="/logout" method="POST">
+            <button class="btn btn-info btn-lg">Back to home</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <form id="global-logout" action="/logout" method="POST">
+    </form>
   </body>
 </html>
-
