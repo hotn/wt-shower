@@ -332,7 +332,7 @@ def system_management_post():
             shower_shutdown(shower.id)
         redis.flushall()
         reset_db()
-        subprocess.run(['systemctl', 'restart', 'shower-worker', 'shower-beater', 'shower-gpio', 'shower-nfc', 'shower-1', 'shower-2'])
+        # subprocess.run(['systemctl', 'restart', 'shower-worker', 'shower-beater', 'shower-gpio', 'shower-nfc', 'shower-1', 'shower-2'])
         return logout()
 
     return render_template('system_management.html', name=u.name, chef=u.chef, admin=u.admin)

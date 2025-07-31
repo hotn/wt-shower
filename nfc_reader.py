@@ -10,6 +10,7 @@ URL='http://localhost:5000/api/nfc'
 def process_IDm():
     global idm
     try:
+        print('Try reading tag')
         tag = clf.connect(rdwr={'on-connect': lambda tag: False})
         idm = binascii.hexlify(tag.identifier).upper()
         idm = idm.decode()
