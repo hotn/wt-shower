@@ -2,17 +2,20 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_api import status 
 from database import db_session
-from models import User, Shower
+from models import User, Shower, Phrase, Event
 from celery import Celery
 from celery.schedules import crontab
 from datetime import datetime
 
 import os
+import sys
 import random
 import platform
 import redis
 import json
-import RPi.GPIO as GPIO
+import math
+import requests
+#import RPi.GPIO as GPIO
 import piplates.RELAYplate as RELAY
 
 #GPIO.setmode(GPIO.BCM)
@@ -21,8 +24,12 @@ import piplates.RELAYplate as RELAY
 
 
 SHOWER_PIN_MAP = { 1:11, 2:12}
-PAUSE_TIME_UNTIL_RESET = 30
+PAUSE_TIME_UNTIL_RESET = 120
 PAUSE_TIME_WARNING = PAUSE_TIME_UNTIL_RESET - 15
+SINK_TIME = 600 # seconds
+SINK_STOP_BUFFER = 5 # seconds
+SINK_ID = 3
+SHOWER_CLEAR_URL='http://localhost:5000/api/shower_clear'
 
 app = Flask(__name__)
 app.secret_key = 'random string'
@@ -39,6 +46,11 @@ celery = Celery(
 )
 redis  = redis.Redis()
 
+phrase_count = Phrase.query.count()
+
+def log_event(uid, credits, kitchen=0, timestamp=datetime.now()):
+    os.system(f"echo '{timestamp}, {uid}, {credits}, {kitchen}'>> log.csv")
+
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     db_session.remove()
@@ -53,12 +65,13 @@ def login():
     if request.method == 'POST':
         name = request.form['name']
         password = request.form['password']
+        print(f"{name}, {password}")
         u = User.query.filter(User.name == name, User.password == password).first()
         if u:
             session['id'] = u.id
             flash('You were successfully logged in')
             if u.chef:
-                return redirect(url_for('kitchen'))
+                return render_template('kitchen.html', name=u.name)
             else:
                 return redirect(url_for('selection'))
         else:
@@ -83,6 +96,10 @@ def sink():
     u = User.query.get(session['id'])
     if u.chef:
         print('running sink')
+        RELAY.relayON(3,int(SINK_ID))
+        #os.system(f"./relayON.py {SINK_ID}")
+        log_event(u.id, 0, 1)
+        enable_sink()
     return render_template('sink.html')
 
 @app.route('/selection', methods = ['GET'])
@@ -98,17 +115,18 @@ def instructions():
 
     if not shower:
         return render_template('unavailable.html')
-    #if not credits_available:
-    #    return render_template('no_credits.html')
+    if user.credits <= 0:
+        return render_template('no_credits.html')
     else:
+        log_event(user.id, credits)
         assign_shower(shower, user, credits)
         seconds = int(credits)*90
-        escort_user(user.name, shower.id, seconds)
+        escort_user(user.pi_name, shower.id, seconds)
         return render_template('instructions.html', seconds=seconds, credits=user.credits, shower=shower.id)
 
 # TODO: OOP
 def available_shower():
-    showers = Shower.query.filter_by(assigned=False).all()
+    showers = Shower.query.filter_by(assigned_to=None).all()
     count = len(showers)
     if count == 0:
         return None
@@ -121,7 +139,7 @@ def available_shower():
 def assign_shower(shower, user, credits):
     seconds = int(credits)*90
     user.credits -= int(credits)
-    shower.assigned = True
+    shower.assigned_to = user.pi_name
     shower.seconds_allocated = seconds
     db_session.commit()
     redis.set(f"shower{shower.id}", 0)
@@ -155,6 +173,7 @@ def toggle():
         toggle_status = not bool(shower_status)
         #GPIO.output(shower_pin(shower_id), not toggle_status) # 1 == off
         RELAY.relayTOGGLE(3,int(shower_id))
+        #os.system(f"./relayTOGGLE.py {shower_id}")
         redis.set(f"shower{shower_id}", int(toggle_status))
         print(f"shower id: {shower_id}, status: {toggle_status}")
         result = {
@@ -170,8 +189,9 @@ def toggle():
 
 @app.route('/api/shower_toggle/<shower_id>')
 def shower_toggle(shower_id):
-    shower = Shower.query.filter_by(id=shower_id, assigned=True).first()
-    if shower == None:
+    #shower = Shower.query.filter_by(id=shower_id, not(assigned_to=None)).first()
+    shower = Shower.query.get(shower_id)
+    if shower.assigned_to == None:
         r  = f"shower{shower_id} NOT ASSIGNED"
         return r
     else:
@@ -180,12 +200,16 @@ def shower_toggle(shower_id):
         toggle_status = not bool(shower_status)
         #GPIO.output(shower_pin(int(shower_id)), not toggle_status) # 1 == off
         RELAY.relayTOGGLE(3,int(shower_id))
+        #os.system(f"./relayTOGGLE.py {shower_id}")
         redis.set(f"shower{shower_id}", int(toggle_status))
         if int(toggle_status) == 1 and shower.started_at == None: # first shower
             shower.started_at = datetime.now()
             db_session.commit()
         elif int(toggle_status) == 0: # pause
             shower.paused_at = datetime.now()
+            db_session.commit()
+        elif int(toggle_status) == 1: # resume
+            shower.paused_at = None
             db_session.commit()
         return f"shower{shower_id}, status:{toggle_status}"
 
@@ -198,6 +222,7 @@ def shower_off(shower_id):
         #shower_id = j['shower']
         #GPIO.output(shower_pin(int(shower_id)), 1)
         RELAY.relayOFF(3,int(shower_id))
+        #os.system(f"./relayOFF.py {shower_id}")
         redis.set(f"shower{shower_id}", 0)
         return "off"
     except Exception as e:
@@ -208,6 +233,10 @@ def shower_off(shower_id):
 def shower_clear(shower_id):
     shower_shutdown(shower_id)
     return f"cleared shower{shower_id}"
+
+def shower_shutdown_request(shower_id):
+    r = requests.get(f"{SHOWER_CLEAR_URL}/{shower_id}")
+    return r.text
 
 def error_handler(error):
     exception_type = error.__class__.__name__
@@ -243,6 +272,7 @@ def periodic(txt):
 def incr():
     showers = running_showers()
     for k,v in enumerate(showers):
+        # if showers are running
         if int(v or 0) == 1:
             shower_id = k+1
             shower = f"shower_time_sum:{shower_id}"
@@ -251,38 +281,63 @@ def incr():
             s = Shower.query.filter_by(id=shower_id).first()
             time_left = s.seconds_allocated - accumulated_shower_time 
             print(f"time_left: {time_left}")
-            if time_left == 30:
-                text = "30 seconds left.."
+
+            if (int(math.floor(accumulated_shower_time)) == 20) or (int(math.floor(accumulated_shower_time)) == 40):
+                index = random.randint(0, phrase_count-1)
+                phrase = Phrase.query.get(index).phrase
+                text = f"Hey, {s.assigned_to}, {phrase}"
+                say.delay(text)
+                print("20 seconds in")
+            if int(math.floor(time_left)) == 30:
+                text = f"Hey, {s.assigned_to}, 30 seconds left.."
+                print(text)
+                say.delay(text)
+            elif int(math.floor(time_left)) == 10:
+                text = f"Hey, {s.assigned_to}, 10 seconds left.."
                 print(text)
                 say.delay(text)
             elif time_left <= 0:
                 text = "TIMES UP......"
                 print(text)
-                say(text)
-                shower_shutdown(shower_id)
+                #say(text)
+                #TODO: shutdown shower after pause of 1-2 min for people to change
+                shower_shutdown_request(shower_id)
                 break
-        else:
+        # if showers are stopped
+        elif (not v == None):
             shower_id = k+1
             s = Shower.query.filter_by(id=shower_id).first()
-            if (not s.paused_at == None) and s.assigned == True:
+            if (not s.paused_at == None) and (not s.assigned_to == None):
                 elapsed_pause = (datetime.now() - s.paused_at).total_seconds()
                 print (f"Shower {shower_id}")
                 print (f"Elapsed time since last pause: {elapsed_pause}")
-                if elapsed_pause > PAUSE_TIME_UNTIL_RESET:
-                    text = f"Shower {shower_id} paused for too long..."
-                    say(text)
-                    shower_shutdown(shower_id)
-                    break
-                if elapsed_pause > PAUSE_TIME_WARNING:
-                    text = f"Shower {shower_id} paused for a while. Shutting down unless it's resumed"
+                if (int(math.floor(elapsed_pause)) == PAUSE_TIME_WARNING):
+                    text = f"Shower {shower_id} paused for a while. Shutting down in 10 seconds unless it is resumed"
+                    print(text)
                     say.delay(text)
+                if (int(math.floor(elapsed_pause)) == PAUSE_TIME_UNTIL_RESET): #30
+                    text = f"Hey {s.assigned_to}, Shower {shower_id} paused for too long..."
+                    say.delay(text)
+                    shower_shutdown_request(shower_id)
+                    break
+    #if running_sink():
+    sink_ttl = running_sink_ttl()
+    if (sink_ttl > 0 and sink_ttl <= SINK_STOP_BUFFER):
+        print(f"stopping sink..")
+        RELAY.relayOFF(3,int(SINK_ID))
+        #os.system(f"./relayOFF.py {SINK_ID}")
+    elif (sink_ttl > SINK_STOP_BUFFER):
+        print(f"sink is running. stopping in {redis.ttl('sink')}")
+    else:
+        print("sink stopped")
 
 def shower_shutdown(shower_id):
-    db_session.query(Shower).filter_by(id=shower_id).update(dict(assigned=False,started_at=None,paused_at=None,seconds_allocated=None))
+    db_session.query(Shower).filter_by(id=shower_id).update(dict(assigned_to=None,started_at=None,paused_at=None,seconds_allocated=None))
     db_session.commit()
     #GPIO.output(shower_pin(int(shower_id)), 1)
     RELAY.relayOFF(3,int(shower_id))
-    redis.set(f"shower{shower_id}", 0)
+    #os.system(f"./relayOFF.py {shower_id}")
+    redis.delete(f"shower{shower_id}")
     redis.set(f"shower_time_sum:{shower_id}", 0)
     text = f"Shutting down shower {shower_id}"
     print(text)
@@ -305,10 +360,16 @@ def say(text):
 def running_showers():
     return redis.mget('shower1', 'shower2')
 
+def enable_sink():
+    return redis.set('sink', 1, SINK_TIME + SINK_STOP_BUFFER)
+
+def running_sink_ttl():
+    #return redis.get('sink')
+    return redis.ttl('sink')
+
 def shower_pin(id):
     return SHOWER_PIN_MAP[id]
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
-
 
