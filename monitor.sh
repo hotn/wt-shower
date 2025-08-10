@@ -34,7 +34,6 @@ tmux send-keys -t 2 "journalctl -f -u shower-worker -o cat | ccze -A" C-m
 tmux send-keys -t 3 "journalctl -f -u shower-1 | ccze -A" C-m
 tmux send-keys -t 4 "journalctl -f -u shower-2 | ccze -A" C-m
 tmux send-keys -t 5 "journalctl -f -u shower-beater -o cat | ccze -A" C-m
-tmux send-keys -t 6 "journalctl -f -u shower-nfc | ccze -A" C-m
 
 # Attach to the session
 tmux attach

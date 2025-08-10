@@ -5,8 +5,8 @@
     // init_global_logout(30);
 
     $(document).ready(function() {
-      $("#clear-nfc").on("click", function() {
-        $("#user-nfc").val("");
+      $("#clear-scan-code").on("click", function() {
+        $("#user-scan-code").val("");
       });
     });
 
@@ -20,15 +20,7 @@
       $(".modal-body #user-credits").val($(this).data('user-credits'));
       $(".modal-body #user-chef").prop('checked', $(this).data('user-chef') == 'True');
       $(".modal-body #user-admin").prop('checked', $(this).data('user-admin') == 'True');
-      $(".modal-body #user-nfc").val($(this).data('user-nfc'));
-    });
-
-    listen_for_nfc((nfc) => {
-      console.log('nfc scan', nfc);
-
-      if ($('#user-details-modal').hasClass('show')) {
-        $(".modal-body #user-nfc").val(nfc);
-      }
+      $(".modal-body #user-scan-code").val($(this).data('user-scan-code'));
     });
 
     window.addEventListener("load", function(){
@@ -70,7 +62,7 @@
           <th scope="col">Remaining Credits</th>
           <th scope="col">Chef</th>
           <th scope="col">Admin</th>
-          <th scope="col">NFC Tag</th>
+          <th scope="col">Scan Code</th>
           <th scope="col">Actions</th>
         </tr>
       </thead>
@@ -90,7 +82,7 @@
                 &check;
               {% endif %}
             </td>
-            <td class="align-middle">{{ user.nfc }}</td>
+            <td class="align-middle">{{ user.scan_code }}</td>
             <td>
               <button 
                 class="edit-user btn btn-info btn-lg" 
@@ -99,7 +91,7 @@
                 data-user-credits="{{ user.credits }}" 
                 data-user-chef="{{ user.chef }}" 
                 data-user-admin="{{ user.admin }}" 
-                data-user-nfc="{{ user.nfc }}" 
+                data-user-scan-code="{{ user.scan_code }}" 
                 data-toggle="modal" 
                 data-target="#user-details-modal"
               >Edit User</button>
@@ -155,13 +147,13 @@
               </div>
               <div class="row py-3">
                 <div class="col-6">
-                  <label for="name">NFC</label>
+                  <label for="name">Scan Code</label>
                 </div>
                 <div class="col-4 pr-0">
-                  <input id="user-nfc" class="form-control" name="nfc" type="text"/>
+                  <input id="user-scan-code" class="form-control" name="scan-code" type="text"/>
                 </div>
                 <div class="col pl-4">
-                  <button type="button" id="clear-nfc" class="form-control btn-secondary">
+                  <button type="button" id="clear-scan-code" class="form-control btn-secondary">
                     <span aria-hidden="true">×</span>
                   </button>
                 </div>

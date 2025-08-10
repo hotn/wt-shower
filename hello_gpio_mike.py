@@ -41,7 +41,8 @@ import RPi.GPIO as GPIO
 
 
 led1 = 19 # shower 1
-led2 = 26 # shower 2
+# led2 = 26 # shower 2
+led2 = 15
 led3 = 21 # sink
 
 GPIO.setmode(GPIO.BCM)
@@ -60,8 +61,15 @@ def led_blink():
         GPIO.output(led3, 0)
 
 
-# print ('hi2')
-while True:
-    # button_action()
-    led_blink()
-    sleep(0.2)
+try:
+    while True:
+        # button_action()
+        led_blink()
+        sleep(0.2)
+except KeyboardInterrupt:
+    print("Exiting...")
+finally:
+    GPIO.cleanup()
+    print("GPIO cleaned up.")
+    print("Goodbye!")
+    exit(0)

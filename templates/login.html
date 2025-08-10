@@ -17,16 +17,43 @@
       form.submit();
     }
 
-    listen_for_nfc((nfc) => {
-      redirectPost('/login_nfc', { nfc: nfc });
-    });
-
-    window.addEventListener("load", function(){
-      numpad.attach({
-        id : "inputPassword",
-        inputType: "password"
+    function initializeNumpad() {
+      window.addEventListener("load", function() {
+        numpad.attach({
+          id : "inputPassword",
+          inputType: "password"
+        });
       });
-    });
+    }
+
+    function initializeCodeScanLogin() {
+      const loginCodeStart = 'wt';
+      const loginCodeEnd = '!';
+      const loginCodeRegex = new RegExp(`^${loginCodeStart}.*${loginCodeEnd}$`);
+
+      let input = '';
+      let inputReset = {};
+
+      document.addEventListener('keydown', function(event) {
+        if (event.key.length !== 1) {
+          return; // Ignore non-character keys
+        }
+
+        clearTimeout(inputReset);
+
+        input += event.key;
+
+        inputReset = setTimeout(() => input = '', 200);
+
+        if (loginCodeRegex.test(input)) {
+          console.log('Login scan code detected:', input);
+          redirectPost('/login_scan_code', { scan_code: input });
+        }
+      });
+    }
+
+    initializeNumpad();
+    initializeCodeScanLogin();
   </script>
 {% endblock %}
 
@@ -59,11 +86,6 @@
 
 
     <form class="form-login" action="/login" method="POST">
-
-<!--	    <img class="mb-4" src="https://getbootstrap.com/docs/4.3/assets/brand/bootstrap-solid.svg" alt="" width="72" height="72">
-
-      <h1 class="h3 mb-3 font-weight-normal text-primary">Please</h1>
--->
       <label for="inputName" class="sr-only">Name</label>
       <select name="name" class="form-control form-control-lg mp-5" id="inputName">
         {% for user in users %}

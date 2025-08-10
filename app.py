@@ -20,7 +20,6 @@ import random
 import platform
 import redis
 import json
-import nfc
 import queue
 import RPi.GPIO as GPIO
 #import piplates.RELAYplate as RELAY
@@ -107,13 +106,7 @@ def format_sse(data: str, event=None) -> str:
 
 @app.route('/ping')
 def ping():
-    msg = SSE.format(data='{"nfc":false}')
-    announcer.announce(msg=msg)
-    return {}, 200
-
-@app.route('/ping2')
-def ping2():
-    msg = format_sse(data='{"nfc":true}')
+    msg = SSE.format(data='{"ping":true}')
     announcer.announce(msg=msg)
     return {}, 200
 
@@ -167,8 +160,8 @@ def login():
     else:
         return redirect(url_for('index'))
 
-@app.route('/login_nfc', methods = ['POST', 'GET'])
-def login_nfc():
+@app.route('/login_scan_code', methods = ['POST', 'GET'])
+def login_scan():
     sink_ttl = running_sink_ttl()
     if (sink_ttl > 0):
         print(f"Sink RUNNING..")
@@ -176,9 +169,9 @@ def login_nfc():
         #return render_template('sink_in_use.html', ttl=sink_ttl )
 
     if request.method == 'POST':
-        nfc = request.form['nfc']
-        print(f"{nfc}")
-        u = User.query.filter(User.nfc == nfc).first()
+        scan_code = request.form['scan_code']
+        print(f"{scan_code}")
+        u = User.query.filter(User.scan_code == scan_code).first()
         if u:
             say("User authentication complete")
             return handle_successful_login(u)
@@ -262,11 +255,11 @@ def user_management_post():
 
     user = User.query.get(request.form['id']);
 
-    # only credits, chef, admin, and nfc may be updated
+    # only credits, chef, admin, and scan id may be updated
     user.credits = request.form['credits']
     user.chef = 1 if 'chef' in request.form else 0
     user.admin = 1 if 'admin' in request.form else 0
-    user.nfc = request.form['nfc']
+    user.scan_code = request.form['scan_code']
 
     try:
         db_session.commit()
@@ -274,7 +267,7 @@ def user_management_post():
     except Exception as e:
         db_session.rollback()
         print("Error saving user changes", e)
-        error_message = 'NFC tag already in use by another user' if 'UNIQUE constraint failed: users.nfc' in str(e) else 'Unknown error'
+        error_message = 'Scanned ID already in use by another user' if 'UNIQUE constraint failed: users.scan_code' in str(e) else 'Unknown error'
 
     users = User.query.order_by(User.name).all()
     return render_template('user_management.html', users=users, success_message=success_message, error_message=error_message, chef=u.chef, admin=u.admin)
@@ -332,7 +325,7 @@ def system_management_post():
             shower_shutdown(shower.id)
         redis.flushall()
         reset_db()
-        # subprocess.run(['systemctl', 'restart', 'shower-worker', 'shower-beater', 'shower-gpio', 'shower-nfc', 'shower-1', 'shower-2'])
+        # subprocess.run(['systemctl', 'restart', 'shower-worker', 'shower-beater', 'shower-gpio', 'shower-1', 'shower-2'])
         return logout()
 
     return render_template('system_management.html', name=u.name, chef=u.chef, admin=u.admin)
@@ -388,12 +381,6 @@ def test():
 
 
 # API
-@app.route('/api/nfc/<nfc_id>')
-def nfc(nfc_id):
-    msg = format_sse(data={"nfc": nfc_id}).replace("'", '"')
-    announcer.announce(msg=msg)
-    return {}, 200
-
 @app.route('/api/toggle', methods = ['POST'])
 def toggle():
     try:

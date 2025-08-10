@@ -23,7 +23,6 @@ kombu==5.2.4
 libusb1==3.1.0
 MarkupSafe==2.1.5
 ndeflib==0.3.3
-nfcpy==1.0.4
 pi-plates==10.4
 prompt_toolkit==3.0.47
 pyDes==2.0.1

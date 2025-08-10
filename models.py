@@ -13,16 +13,16 @@ class User(Base):
     credits = Column(Integer, unique=False)
     chef = Column(Boolean, default=False)
     admin = Column(Boolean, default=False)
-    nfc = Column(String(50), unique=True, index=True)
+    scan_code = Column(String(50), unique=True, index=True)
 
-    def __init__(self, name=None, pi_name=None, password=None, credits=18, chef=False, admin=False, nfc=None):
+    def __init__(self, name=None, pi_name=None, password=None, credits=18, chef=False, admin=False, scan_code=None):
         self.name = name
         self.pi_name = pi_name
         self.password = password
         self.credits = credits
         self.chef = chef
         self.admin = admin
-        self.nfc = nfc
+        self.scan_code = scan_code
 
     def __repr__(self):
         return '<User %r>' % (self.name)

@@ -63,27 +63,6 @@ pip install -r requirements.txt
 python create_db.py
 ```
 
-### NFC Reader
-
-verify nfc reader. Look for `Sony Corp.`
-
-``` bash
-lsusb
-```
-
-enable nfc reader
-
-``` bash
-python -m nfc
-```
-
-i.e.
-``` bash
-sudo sh -c 'echo SUBSYSTEM==\"usb\", ACTION==\"add\", ATTRS{idVendor}==\"054c\", ATTRS{idProduct}==\"06c1\", GROUP=\"plugdev\" >> /etc/udev/rules.d/nfcdev.rules'
-sudo udevadm control -R # then re-attach device
-```
-
-
 ## Seed Data
 
 Enter the Sqlite shell for the app database:
@@ -122,20 +101,28 @@ switch control
 python hello_gpio3.py
 ```
 
-nfc reader
+### Logging In
 
-[nfcpy docs](https://nfcpy.readthedocs.io/en/latest/topics/get-started.html#installation)
+Logging in can be achieved in two different ways:
 
-``` bash
-python nfc_reader.py
-```
+- PIN
+  
+  Users may be assigned a PIN to use for logging in. If a user has a PIN, they may select their name from the dropdown list of camp members, then tap the PIN Code input field on the form to bring up the 10-key display for PIN entry.
+  
+  _Note: This option is probably best limited to admin users only. Providing this option to all camp members adds an additional thing to teach camp members as well as expands the number of features to support. It also prevents people from stealing other peoples' PINs and using their credits without their knowledge._
+
+- Scan Codes
+
+  Scan code logins could consist of a variety of forms. In the past, NFC tags were used for scan codes. Currently, QR codes are used for scan codes. In either case, the app will allow logging in by simply scanning the code while on the login screen.
+
+  _Note: With certain approaches to enabling code scan logins, it may nearly impossible to prevent user input on other screens, so consideration for what input on all other screens may do is important. For example, barcode readers may simply send input signals for each character in the barcode as if it were a keyboard. If there are text input areas that have important significance, the barcode scanner will be able to input text if a barcode is scanned._
 
 ## systemd
 
 restart
 
 ``` bash
-sudo systemctl restart shower-app shower-worker shower-beater shower-gpio shower-nfc
+sudo systemctl restart shower-app shower-worker shower-beater shower-gpio
 
 ```
 
@@ -146,7 +133,6 @@ journalctl -f -u shower-app -o cat | ccze
 journalctl -f -u shower-worker -o cat | ccze
 journalctl -f -u shower-beater -o cat | ccze
 #journalctl -f -u shower-gpio | ccze
-journalctl -f -u shower-nfc | ccze
 journalctl -f -u shower-1 | ccze
 journalctl -f -u shower-2 | ccze
 ```
